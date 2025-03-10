@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MAIS-C AI Support Counselor</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      width: 90%;
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      display: none; /* Hidden until login */
+    }
+    .login-container {
+      width: 90%;
+      max-width: 300px;
+      margin: 50px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .login-container input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .login-container button {
+      width: 100%;
+      padding: 10px;
+      background: #007BFF;
+      border: none;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .chat-header {
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .logout-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      padding: 5px 10px;
+      background: #c00;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .chat-history {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #fafafa;
+      border-radius: 4px;
+    }
+    .chat-message {
+      margin: 10px 0;
+    }
+    .chat-input-area {
+      display: flex;
+      gap: 5px;
+    }
+    .chat-input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .send-btn,
+    .record-btn {
+      padding: 10px 15px;
+      border: none;
+      background: #007BFF;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .send-btn:disabled,
+    .record-btn:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+    #record-btn.recording {
+      background: red;
+    }
+    #media-container {
+      margin-top: 0px;
+      text-align: left;
+      width: 300px;
+    }
+    /* Simple mouth animation states */
+    .mouth {
+      width: 300px;
+      height: 150px;
+      background-size: cover;
+      margin: 0 auto;
+    }
+    .mouth.closed {
+      background-image: url('/images/MouthClosed.png');
+    }
+    .mouth.open {
+      background-image: url('/images/MouthOpen.png');
+    }
+    /* Beautified conversation sidebar */
+    .chat-sidebar {
+      width: 300px;
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #6a11cb, #2575fc);
+      padding: 20px;
+      color: #fff;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+      border-top-right-radius: 20px;
+      border-bottom-right-radius: 20px;
+      overflow-y: auto;
+      display: none; /* Hidden until login */
+    }
+    .chat-sidebar h3 {
+      font-size: 26px;
+      margin-bottom: 20px;
+      text-align: center;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+    #new-chat-btn {
+      background: #fff;
+      color: #2575fc;
+      border: none;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 20px;
+      transition: background 0.3s, transform 0.3s;
+    }
+    #new-chat-btn:hover {
+      background: #f0f0f0;
+      transform: scale(1.02);
+    }
+    #chat-list {
+      margin-top: 20px;
+    }
+    .chat-item {
+      padding: 12px 15px;
+      margin-bottom: 10px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      transition: background 0.3s, transform 0.3s;
+      cursor: pointer;
+    }
+    .chat-item:hover {
+      background: rgba(255,255,255,0.3);
+      transform: scale(1.02);
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar for conversations -->
+  <div class="chat-sidebar" id="chat-sidebar">
+    <h3>Conversations</h3>
+    <button id="new-chat-btn">New Chat</button>
+    <div id="chat-list"></div>
+  </div>
+
+  <!-- Login Form -->
+  <div id="login-container" class="login-container">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button id="login-btn">Login</button>
+    <hr>
+    <h3>Or Register</h3>
+    <input type="text" id="reg-username" placeholder="New Username">
+    <input type="password" id="reg-password" placeholder="New Password">
+    <button id="register-btn">Register</button>
+    <div id="login-error" style="color:red;"></div>
+  </div>
+
+  <!-- Chat Container -->
+  <div id="chat-container" class="container">
+    <div class="chat-header">
+      MAIS-C Chat
+      <button class="logout-btn" id="logout-btn">Logout</button>
+    </div>
+    <div id="chat-history" class="chat-history"></div>
+    <div class="chat-input-area">
+      <input type="text" id="chat-input" class="chat-input" placeholder="Type your message here...">
+      <button id="send-btn" class="send-btn">Send</button>
+      <button id="record-btn" class="record-btn">Record</button>
+    </div>
+    <div id="media-container">
+      <div id="mouth" class="mouth closed"></div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let currentChatId = null;
+    let authToken = null;
+    
+    // DOM elements
+    const loginContainer = document.getElementById('login-container');
+    const chatContainer = document.getElementById('chat-container');
+    const chatSidebar = document.getElementById('chat-sidebar');
+    const loginBtn = document.getElementById('login-btn');
+    const registerBtn = document.getElementById('register-btn');
+    const loginError = document.getElementById('login-error');
+    const chatHistory = document.getElementById('chat-history');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const recordBtn = document.getElementById('record-btn');
+    const newChatBtn = document.getElementById('new-chat-btn');
+    const chatListEl = document.getElementById('chat-list');
+    const mouthElem = document.getElementById('mouth');
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    // Speech recognition variables
+    let isRecording = false;
+    let recordedTranscript = "";
+    let mouthAnimationInterval;
+    let recognition;
+    
+    // Helper: Append a message to chat history
+    function appendMessage(message) {
+      const div = document.createElement('div');
+      div.className = 'chat-message';
+      div.textContent = message;
+      chatHistory.appendChild(div);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+    
+    // Show chat UI (chat container & sidebar) after authentication
+    function showChat() {
+      loginContainer.style.display = 'none';
+      chatContainer.style.display = 'block';
+      chatSidebar.style.display = 'block';
+      loadChatList();
+    }
+    
+    // Logout function: Clear token and show login screen
+    function logout() {
+      authToken = null;
+      localStorage.removeItem("authToken");
+      chatContainer.style.display = 'none';
+      chatSidebar.style.display = 'none';
+      loginContainer.style.display = 'block';
+      chatHistory.innerHTML = "";
+      chatListEl.innerHTML = "";
+      currentChatId = null;
+    }
+    
+    logoutBtn.addEventListener('click', logout);
+    
+    // Register
+    async function register(username, password) {
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+          authToken = data.token;
+          localStorage.setItem("authToken", authToken);
+          showChat();
+        } else {
+          loginError.textContent = data.message;
+        }
+      } catch (err) {
+        loginError.textContent = "Registration error.";
+      }
+    }
+    
+    // Login
+    async function login(username, password) {
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+          authToken = data.token;
+          localStorage.setItem("authToken", authToken);
+          showChat();
+        } else {
+          loginError.textContent = data.message;
+        }
+      } catch (err) {
+        loginError.textContent = "Login error.";
+      }
+    }
+    
+    loginBtn.addEventListener('click', () => {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      login(username, password);
+    });
+    
+    registerBtn.addEventListener('click', () => {
+      const username = document.getElementById('reg-username').value.trim();
+      const password = document.getElementById('reg-password').value;
+      register(username, password);
+    });
+    
+    // Load chat list from backend
+    async function loadChatList() {
+      try {
+        const res = await fetch('/api/chats', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!res.ok) throw new Error("Failed to load chats");
+        const chats = await res.json();
+        chatListEl.innerHTML = "";
+        chats.forEach(chat => {
+          const div = document.createElement('div');
+          div.className = 'chat-item';
+          div.textContent = chat.title || `Chat ${chat.id}`;
+          div.dataset.chatId = chat.id;
+          div.addEventListener('click', () => loadChatMessages(chat.id));
+          chatListEl.appendChild(div);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    
+    // Create a new chat conversation
+    async function newChat() {
+      try {
+        const res = await fetch('/api/chats/new', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ title: 'New Conversation' })
+        });
+        if (!res.ok) throw new Error("Failed to create new chat");
+        const chat = await res.json();
+        currentChatId = chat.id;
+        loadChatList();
+        chatHistory.innerHTML = "";
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    
+    newChatBtn.addEventListener('click', newChat);
+    
+    // Load messages for a specific chat
+    async function loadChatMessages(chatId) {
+      currentChatId = chatId;
+      try {
+        const res = await fetch('/api/chats', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!res.ok) throw new Error("Failed to load chat");
+        const chats = await res.json();
+        const chat = chats.find(c => c.id == chatId);
+        chatHistory.innerHTML = "";
+        if (chat && chat.messages) {
+          const messages = JSON.parse(chat.messages);
+          messages.forEach(msg => {
+            appendMessage(`${msg.sender === 'user' ? 'You' : 'MAIS-C'}: ${msg.content}`);
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    
+    // Send a message from the user, then get AI response
+    async function sendMessage() {
+      const message = chatInput.value.trim();
+      if (!message) return;
+      
+      if (!currentChatId) {
+        await newChat();
+      }
+      
+      appendMessage("You: " + message);
+      await fetch(`/api/chats/${currentChatId}/message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ sender: 'user', content: message })
+      });
+      chatInput.value = '';
+      
+      try {
+        const response = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: message })
+        });
+        const data = await response.json();
+        appendMessage("MAIS-C: " + data.text);
+        
+        await fetch(`/api/chats/${currentChatId}/message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ sender: 'bot', content: data.text })
+        });
+        
+        if (data.audio) {
+          const audioElement = new Audio(data.audio);
+          audioElement.addEventListener('loadedmetadata', () => {
+            const duration = audioElement.duration;
+            const wordCount = data.text.split(/\s+/).filter(w => w).length;
+            const interval = (duration / wordCount) * 1000;
+  
+            let mouthState = false;
+            clearInterval(mouthAnimationInterval);
+            mouthAnimationInterval = setInterval(() => {
+              mouthState = !mouthState;
+              mouthElem.className = 'mouth ' + (mouthState ? 'open' : 'closed');
+            }, interval);
+          });
+          audioElement.play().then(() => {
+            audioElement.addEventListener('ended', () => {
+              clearInterval(mouthAnimationInterval);
+              mouthElem.className = 'mouth closed';
+            });
+          }).catch(err => {
+            console.error("Audio playback error:", err);
+          });
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        appendMessage("MAIS-C: Sorry, there was an error processing your request.");
+      }
+    }
+    
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+    
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+    
+      recognition.onstart = function () {
+        recordedTranscript = "";
+      };
+    
+      recognition.onresult = (event) => {
+        let finalTranscript = "";
+        let interimTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + " ";
+            recordedTranscript += event.results[i][0].transcript + " ";
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        chatInput.value = recordedTranscript + interimTranscript;
+      };
+    
+      recognition.onerror = function (event) {
+        console.error("Speech recognition error:", event.error);
+      };
+    
+      recognition.onend = function () {
+        chatInput.value = recordedTranscript.trim();
+        if (recordedTranscript.trim().length > 0) {
+          sendMessage();
+        }
+        recordedTranscript = "";
+        recordBtn.classList.remove('recording');
+        recordBtn.textContent = "Record";
+        isRecording = false;
+      };
+    } else {
+      recordBtn.disabled = true;
+      recordBtn.textContent = "Audio not supported";
+    }
+    
+    recordBtn.addEventListener('click', function () {
+      if (!isRecording && recognition) {
+        recordedTranscript = "";
+        isRecording = true;
+        recordBtn.classList.add('recording');
+        recordBtn.textContent = "Stop";
+        recognition.start();
+      } else if (isRecording && recognition) {
+        recognition.stop();
+      }
+    });
+    
+    window.onload = function () {
+      const storedToken = localStorage.getItem("authToken");
+      if (storedToken) {
+        authToken = storedToken;
+        showChat();
+      }
+    };
+  </script>
+</body>
+</html>
