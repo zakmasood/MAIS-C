@@ -43,7 +43,7 @@ const JWT_SECRET = secret;
 
 // Initialize OpenAI instance
 const openai = new OpenAI({
-  apiKey: 'API_KEY_HERE.'
+  apiKey: 'API_KEY_HERE'
 });
 
 // JWT middleware to verify token
